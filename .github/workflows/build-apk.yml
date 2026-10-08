@@ -389,31 +389,10 @@ jobs:
               requestPin("Exit launcher", this::exitLauncher);
             }
           }
-          EOF
+                    EOF
+      - name: Add artwork and build APK
+        run: |
           cat <<'ICON' | base64 -d > app/src/main/res/drawable/appicon.webp
-          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
-          7x3O4srNhO8HQABb4EF7MWBd2nM0wAAA
           ICON
           cat <<'BANNER' | base64 -d > app/src/main/res/drawable/topbanner.webp
           UklGRpgaAABXRUJQVlA4IIwaAACwcwCdASrwAKAAPxluqVSspiOjO3xu2ZAjCWwzjsx7SwKsNtiCpBGnfCXv4enT/Ebv3nZNOP6K
