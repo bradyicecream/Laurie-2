@@ -1,4 +1,3 @@
-
 name: Build Laurie's Creations Launcher
 on:
   push:
@@ -40,8 +39,8 @@ jobs:
               applicationId 'com.lauriescreations.businesshome'
               minSdk 23
               targetSdk 35
-              versionCode 13
-              versionName '3.3'
+              versionCode 14
+              versionName '3.4'
             }
             compileOptions {
               sourceCompatibility JavaVersion.VERSION_17
@@ -73,6 +72,7 @@ jobs:
           EOF
           cat > app/src/main/java/com/lauriescreations/home/MainActivity.java <<'EOF'
           package com.lauriescreations.home;
+          
           import android.app.*;
           import android.os.*;
           import android.content.*;
@@ -81,58 +81,312 @@ jobs:
           import android.graphics.drawable.*;
           import android.net.*;
           import android.provider.*;
+          import android.text.InputFilter;
+          import android.text.InputType;
           import android.view.*;
           import android.widget.*;
+          import java.security.MessageDigest;
+          import java.security.SecureRandom;
+          import javax.crypto.SecretKeyFactory;
+          import javax.crypto.spec.PBEKeySpec;
+          
           public class MainActivity extends Activity {
-            int dp(int v){return Math.round(v*getResources().getDisplayMetrics().density);}
-            GradientDrawable rounded(int c){GradientDrawable d=new GradientDrawable();d.setColor(c);d.setCornerRadius(dp(20));return d;}
-            Intent category(String c){Intent i=new Intent(Intent.ACTION_MAIN);i.addCategory(c);return i;}
-            Intent photos(){Intent i=new Intent(Intent.ACTION_VIEW);i.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,"image/*");return i;}
-            @Override public void onCreate(Bundle b){super.onCreate(b);
-              getWindow().setStatusBarColor(Color.rgb(64,24,93));
-              ScrollView sc=new ScrollView(this);
-              LinearLayout root=new LinearLayout(this);root.setOrientation(1);
-              root.setGravity(Gravity.CENTER_HORIZONTAL);root.setPadding(dp(16),dp(18),dp(16),dp(24));
-              root.setBackgroundColor(Color.rgb(246,238,250));
-              ImageView header=new ImageView(this);header.setImageResource(R.drawable.topbanner);
-              header.setScaleType(ImageView.ScaleType.FIT_CENTER);header.setAdjustViewBounds(true);
-              LinearLayout.LayoutParams h=new LinearLayout.LayoutParams(-1,-2);h.bottomMargin=dp(14);root.addView(header,h);
-              GridLayout grid=new GridLayout(this);grid.setColumnCount(2);
-              addApp(grid,"Square POS","com.squareup");
-              addApp(grid,"Meta Business","com.facebook.pages.app");
-              addApp(grid,"Cash App","com.squareup.cash");
-              addIntent(grid,"Camera",new Intent("android.media.action.STILL_IMAGE_CAMERA"));
-              addIntent(grid,"Photos",photos());
-              addIntent(grid,"Email",category(Intent.CATEGORY_APP_EMAIL));
-              addIntent(grid,"Settings",new Intent(Settings.ACTION_SETTINGS));
-              addIntent(grid,"Calculator",category("android.intent.category.APP_CALCULATOR"));
-              root.addView(grid,new LinearLayout.LayoutParams(-1,-2));sc.addView(root);setContentView(sc);
+            private static final String PREF_NAME = "lauries_exit_pin";
+            private static final int PIN_ITERATIONS = 100000;
+            private static final int PURPLE = Color.rgb(103, 45, 148);
+          
+            int dp(int v) {
+              return Math.round(v * getResources().getDisplayMetrics().density);
             }
-            void addApp(GridLayout g,String name,String pkg){
-              Drawable d=null;try{d=getPackageManager().getApplicationIcon(pkg);}catch(Exception e){}
-              addTile(g,name,d,()->{
-                Intent i=getPackageManager().getLaunchIntentForPackage(pkg);
-                if(i!=null)startActivity(i);
-                else open(new Intent(Intent.ACTION_VIEW,Uri.parse("https://play.google.com/store/apps/details?id="+pkg)));
+          
+            GradientDrawable rounded(int color) {
+              GradientDrawable drawable = new GradientDrawable();
+              drawable.setColor(color);
+              drawable.setCornerRadius(dp(20));
+              return drawable;
+            }
+          
+            Intent category(String name) {
+              Intent intent = new Intent(Intent.ACTION_MAIN);
+              intent.addCategory(name);
+              return intent;
+            }
+          
+            Intent photos() {
+              Intent intent = new Intent(Intent.ACTION_VIEW);
+              intent.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*");
+              return intent;
+            }
+          
+            @Override
+            public void onCreate(Bundle state) {
+              super.onCreate(state);
+              getWindow().setStatusBarColor(Color.rgb(64, 24, 93));
+          
+              ScrollView scroll = new ScrollView(this);
+              LinearLayout root = new LinearLayout(this);
+              root.setOrientation(LinearLayout.VERTICAL);
+              root.setGravity(Gravity.CENTER_HORIZONTAL);
+              root.setPadding(dp(16), dp(18), dp(16), dp(24));
+              root.setBackgroundColor(Color.rgb(246, 238, 250));
+          
+              ImageView banner = new ImageView(this);
+              banner.setImageResource(R.drawable.topbanner);
+              banner.setScaleType(ImageView.ScaleType.FIT_CENTER);
+              banner.setAdjustViewBounds(true);
+              LinearLayout.LayoutParams bannerLayout = new LinearLayout.LayoutParams(-1, -2);
+              bannerLayout.bottomMargin = dp(14);
+              root.addView(banner, bannerLayout);
+          
+              GridLayout grid = new GridLayout(this);
+              grid.setColumnCount(2);
+              addApp(grid, "Square POS", "com.squareup");
+              addApp(grid, "Meta Business", "com.facebook.pages.app");
+              addApp(grid, "Cash App", "com.squareup.cash");
+              addIntent(grid, "Camera", new Intent("android.media.action.STILL_IMAGE_CAMERA"));
+              addIntent(grid, "Photos", photos());
+              addIntent(grid, "Email", category(Intent.CATEGORY_APP_EMAIL));
+              addProtectedSettings(grid);
+              addIntent(grid, "Calculator", category("android.intent.category.APP_CALCULATOR"));
+              root.addView(grid, new LinearLayout.LayoutParams(-1, -2));
+          
+              TextView exit = new TextView(this);
+              exit.setText("\uD83D\uDD12  Exit launcher");
+              exit.setTextColor(PURPLE);
+              exit.setTextSize(16);
+              exit.setTypeface(null, 1);
+              exit.setGravity(Gravity.CENTER);
+              exit.setPadding(dp(12), dp(20), dp(12), dp(12));
+              exit.setOnClickListener(view -> requestPin("Exit launcher", this::exitLauncher));
+              LinearLayout.LayoutParams exitLayout = new LinearLayout.LayoutParams(-1, -2);
+              root.addView(exit, exitLayout);
+          
+              TextView changePin = new TextView(this);
+              changePin.setText("Change exit PIN");
+              changePin.setTextColor(Color.rgb(108, 92, 123));
+              changePin.setTextSize(13);
+              changePin.setGravity(Gravity.CENTER);
+              changePin.setPadding(dp(12), dp(6), dp(12), dp(14));
+              changePin.setOnClickListener(view -> requestPin("Enter current PIN", this::setUpPin));
+              root.addView(changePin);
+          
+              scroll.addView(root);
+              setContentView(scroll);
+          
+              if (!getPreferences().contains("pin_hash")) {
+                root.post(this::setUpPin);
+              }
+            }
+          
+            private android.content.SharedPreferences getPreferences() {
+              return getSharedPreferences(PREF_NAME, MODE_PRIVATE);
+            }
+          
+            private EditText pinInput() {
+              EditText edit = new EditText(this);
+              edit.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_VARIATION_PASSWORD);
+              edit.setFilters(new InputFilter[]{new InputFilter.LengthFilter(6)});
+              edit.setHint("4 to 6 digits");
+              edit.setSingleLine(true);
+              edit.setPadding(dp(24), dp(12), dp(24), dp(12));
+              return edit;
+            }
+          
+            private void setUpPin() {
+              EditText input = pinInput();
+              AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("Create your exit PIN")
+                .setMessage("Choose 4 to 6 digits. You will need this PIN to exit the launcher or open Settings.")
+                .setView(input)
+                .setPositiveButton("Continue", null)
+                .setCancelable(false)
+                .create();
+              dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(view -> {
+                String pin = input.getText().toString();
+                if (!pin.matches("[0-9]{4,6}")) {
+                  input.setError("Use 4 to 6 digits");
+                  return;
+                }
+                dialog.dismiss();
+                confirmPin(pin);
+              }));
+              dialog.show();
+            }
+          
+            private void confirmPin(String first) {
+              EditText input = pinInput();
+              AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("Confirm your exit PIN")
+                .setMessage("Enter the same PIN again.")
+                .setView(input)
+                .setPositiveButton("Save PIN", null)
+                .setCancelable(false)
+                .create();
+              dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(view -> {
+                if (!first.equals(input.getText().toString())) {
+                  input.setError("PINs do not match");
+                  return;
+                }
+                try {
+                  byte[] salt = new byte[16];
+                  new SecureRandom().nextBytes(salt);
+                  String hash = hashPin(first, salt);
+                  getPreferences().edit()
+                    .putString("pin_salt", android.util.Base64.encodeToString(salt, android.util.Base64.NO_WRAP))
+                    .putString("pin_hash", hash)
+                    .putInt("failed_attempts", 0)
+                    .putLong("locked_until", 0)
+                    .apply();
+                  dialog.dismiss();
+                  Toast.makeText(this, "Exit PIN saved", Toast.LENGTH_SHORT).show();
+                } catch (Exception e) {
+                  Toast.makeText(this, "Could not save PIN. Try again.", Toast.LENGTH_LONG).show();
+                }
+              }));
+              dialog.show();
+            }
+          
+            private String hashPin(String pin, byte[] salt) throws Exception {
+              PBEKeySpec spec = new PBEKeySpec(pin.toCharArray(), salt, PIN_ITERATIONS, 256);
+              try {
+                byte[] result = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1").generateSecret(spec).getEncoded();
+                return android.util.Base64.encodeToString(result, android.util.Base64.NO_WRAP);
+              } finally {
+                spec.clearPassword();
+              }
+            }
+          
+            private boolean validPin(String pin) {
+              try {
+                String encodedSalt = getPreferences().getString("pin_salt", "");
+                String encodedHash = getPreferences().getString("pin_hash", "");
+                byte[] salt = android.util.Base64.decode(encodedSalt, android.util.Base64.DEFAULT);
+                byte[] expected = android.util.Base64.decode(encodedHash, android.util.Base64.DEFAULT);
+                byte[] actual = android.util.Base64.decode(hashPin(pin, salt), android.util.Base64.DEFAULT);
+                return MessageDigest.isEqual(expected, actual);
+              } catch (Exception e) {
+                return false;
+              }
+            }
+          
+            private void requestPin(String title, Runnable onSuccess) {
+              if (!getPreferences().contains("pin_hash")) {
+                setUpPin();
+                return;
+              }
+              long wait = getPreferences().getLong("locked_until", 0) - System.currentTimeMillis();
+              if (wait > 0) {
+                Toast.makeText(this, "Too many attempts. Wait " + ((wait + 999) / 1000) + " seconds.", Toast.LENGTH_LONG).show();
+                return;
+              }
+              EditText input = pinInput();
+              AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle(title)
+                .setMessage("Enter your Laurieâs Creations exit PIN.")
+                .setView(input)
+                .setNegativeButton("Cancel", (d, w) -> {})
+                .setPositiveButton("Unlock", null)
+                .create();
+              dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(view -> {
+                if (validPin(input.getText().toString())) {
+                  getPreferences().edit().putInt("failed_attempts", 0).putLong("locked_until", 0).apply();
+                  dialog.dismiss();
+                  onSuccess.run();
+                } else {
+                  int failures = getPreferences().getInt("failed_attempts", 0) + 1;
+                  if (failures >= 5) {
+                    getPreferences().edit().putInt("failed_attempts", 0)
+                      .putLong("locked_until", System.currentTimeMillis() + 30000).apply();
+                    dialog.dismiss();
+                    Toast.makeText(this, "Too many attempts. Try again in 30 seconds.", Toast.LENGTH_LONG).show();
+                  } else {
+                    getPreferences().edit().putInt("failed_attempts", failures).apply();
+                    input.setError("Incorrect PIN");
+                    input.setText("");
+                  }
+                }
+              }));
+              dialog.show();
+            }
+          
+            private void exitLauncher() {
+              Toast.makeText(this, "Select a different default Home app to leave.", Toast.LENGTH_LONG).show();
+              open(new Intent(Settings.ACTION_HOME_SETTINGS));
+            }
+          
+            private void addProtectedSettings(GridLayout grid) {
+              Intent settings = new Intent(Settings.ACTION_SETTINGS);
+              Drawable icon = null;
+              try {
+                ResolveInfo resolved = getPackageManager().resolveActivity(settings, PackageManager.MATCH_DEFAULT_ONLY);
+                if (resolved != null) icon = resolved.loadIcon(getPackageManager());
+              } catch (Exception ignored) {}
+              addTile(grid, "Settings", icon, () -> requestPin("Open Settings", () -> open(settings)));
+            }
+          
+            void addApp(GridLayout grid, String name, String pkg) {
+              Drawable icon = null;
+              try { icon = getPackageManager().getApplicationIcon(pkg); } catch (Exception ignored) {}
+              addTile(grid, name, icon, () -> {
+                Intent launch = getPackageManager().getLaunchIntentForPackage(pkg);
+                if (launch != null) startActivity(launch);
+                else open(new Intent(Intent.ACTION_VIEW,
+                  Uri.parse("https://play.google.com/store/apps/details?id=" + pkg)));
               });
             }
-            void addIntent(GridLayout g,String name,Intent i){
-              Drawable d=null;try{ResolveInfo r=getPackageManager().resolveActivity(i,PackageManager.MATCH_DEFAULT_ONLY);
-                if(r!=null)d=r.loadIcon(getPackageManager());}catch(Exception e){}
-              addTile(g,name,d,()->open(i));
+          
+            void addIntent(GridLayout grid, String name, Intent intent) {
+              Drawable icon = null;
+              try {
+                ResolveInfo r = getPackageManager().resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY);
+                if (r != null) icon = r.loadIcon(getPackageManager());
+              } catch (Exception ignored) {}
+              addTile(grid, name, icon, () -> open(intent));
             }
-            void open(Intent i){try{startActivity(i);}catch(Exception e){Toast.makeText(this,"App not found",0).show();}}
-            void addTile(GridLayout g,String name,Drawable icon,Runnable action){
-              LinearLayout tile=new LinearLayout(this);tile.setOrientation(1);tile.setGravity(Gravity.CENTER);
-              tile.setPadding(dp(8),dp(10),dp(8),dp(10));tile.setBackground(rounded(Color.WHITE));tile.setElevation(dp(3));
-              ImageView pic=new ImageView(this);pic.setPadding(dp(8),dp(8),dp(8),dp(8));
-              if(icon!=null)pic.setImageDrawable(icon);else pic.setImageResource(android.R.drawable.sym_def_app_icon);
-              tile.addView(pic,new LinearLayout.LayoutParams(dp(70),dp(70)));
-              TextView label=new TextView(this);label.setText(name);label.setTextSize(15);
-              label.setGravity(Gravity.CENTER);label.setTextColor(Color.rgb(57,42,65));label.setTypeface(null,1);tile.addView(label);
-              tile.setOnClickListener(v->action.run());
-              GridLayout.LayoutParams p=new GridLayout.LayoutParams();p.width=0;p.height=dp(126);
-              p.columnSpec=GridLayout.spec(GridLayout.UNDEFINED,1f);p.setMargins(dp(6),dp(6),dp(6),dp(6));g.addView(tile,p);
+          
+            void open(Intent intent) {
+              try { startActivity(intent); }
+              catch (Exception e) {
+                Toast.makeText(this, "App not found", Toast.LENGTH_SHORT).show();
+              }
+            }
+          
+            void addTile(GridLayout grid, String name, Drawable icon, Runnable action) {
+              LinearLayout tile = new LinearLayout(this);
+              tile.setOrientation(LinearLayout.VERTICAL);
+              tile.setGravity(Gravity.CENTER);
+              tile.setPadding(dp(8), dp(10), dp(8), dp(10));
+              tile.setBackground(rounded(Color.WHITE));
+              tile.setElevation(dp(3));
+              tile.setClickable(true);
+              tile.setFocusable(true);
+          
+              ImageView pic = new ImageView(this);
+              pic.setPadding(dp(8), dp(8), dp(8), dp(8));
+              if (icon != null) pic.setImageDrawable(icon);
+              else pic.setImageResource(android.R.drawable.sym_def_app_icon);
+              tile.addView(pic, new LinearLayout.LayoutParams(dp(70), dp(70)));
+          
+              TextView label = new TextView(this);
+              label.setText(name);
+              label.setTextSize(15);
+              label.setGravity(Gravity.CENTER);
+              label.setTextColor(Color.rgb(57, 42, 65));
+              label.setTypeface(null, 1);
+              tile.addView(label);
+              tile.setOnClickListener(view -> action.run());
+          
+              GridLayout.LayoutParams params = new GridLayout.LayoutParams();
+              params.width = 0;
+              params.height = dp(126);
+              params.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+              params.setMargins(dp(6), dp(6), dp(6), dp(6));
+              grid.addView(tile, params);
+            }
+          
+            @Override
+            public void onBackPressed() {
+              requestPin("Exit launcher", this::exitLauncher);
             }
           }
           EOF
