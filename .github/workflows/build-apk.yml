@@ -1,4 +1,4 @@
-name: Build Laurie's Creations Kiosk Launcher
+name: Build Laurie's Creations Everyday Launcher
 
 on:
   push:
@@ -11,15 +11,12 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
@@ -28,58 +25,34 @@ jobs:
         run: |
           SDK="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           yes | "$SDK" --licenses >/dev/null || true
-          "$SDK" 'platforms;android-35' 'build-tools;35.0.0'
-
-          mkdir -p app/src/main/java/com/lauriescreations/home
-          mkdir -p app/src/main/res/drawable
-          mkdir -p app/src/main/res/xml
+          "$SDK" 'platforms;android-35' 'build-tools;35.0.0' 'platform-tools'
+          mkdir -p app/src/main/java/com/lauriescreations/home app/src/main/res/drawable
 
           cat > settings.gradle <<'EOF'
-          pluginManagement {
-            repositories {
-              google()
-              mavenCentral()
-              gradlePluginPortal()
-            }
-          }
-          dependencyResolutionManagement {
-            repositories {
-              google()
-              mavenCentral()
-            }
-          }
-          rootProject.name = 'LauriesCreations'
+          pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
+          dependencyResolutionManagement { repositories { google(); mavenCentral() } }
+          rootProject.name='LauriesCreations'
           include ':app'
           EOF
 
-          cat > build.gradle <<'EOF'
-          plugins {
-            id 'com.android.application' version '8.7.3' apply false
-          }
-          EOF
+          echo "plugins { id 'com.android.application' version '8.7.3' apply false }" > build.gradle
 
           cat > app/build.gradle <<'EOF'
-          plugins {
-            id 'com.android.application'
-          }
-
+          plugins { id 'com.android.application' }
           android {
             namespace 'com.lauriescreations.home'
             compileSdk 35
-
             defaultConfig {
               applicationId 'com.lauriescreations.businesshome'
               minSdk 23
               targetSdk 35
-              versionCode 17
-              versionName '3.7'
+              versionCode 18
+              versionName '3.8-everyday'
             }
-
             compileOptions {
               sourceCompatibility JavaVersion.VERSION_17
               targetCompatibility JavaVersion.VERSION_17
             }
-
             signingConfigs {
               lcRelease {
                 if (System.getenv('LC_KEYSTORE_PATH')) {
@@ -90,7 +63,6 @@ jobs:
                 }
               }
             }
-
             buildTypes {
               release {
                 minifyEnabled false
@@ -106,104 +78,39 @@ jobs:
         run: |
           cat > app/src/main/AndroidManifest.xml <<'EOF'
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-
             <queries>
               <package android:name="com.squareup"/>
               <package android:name="com.squareup.dashboard"/>
               <package android:name="com.squareup.payroll.team"/>
               <package android:name="com.facebook.pages.app"/>
               <package android:name="com.squareup.cash"/>
-
-              <intent>
-                <action android:name="android.media.action.STILL_IMAGE_CAMERA"/>
-              </intent>
-
-              <intent>
-                <action android:name="android.intent.action.MAIN"/>
-                <category android:name="android.intent.category.APP_EMAIL"/>
-              </intent>
-
-              <intent>
-                <action android:name="android.intent.action.MAIN"/>
-                <category android:name="android.intent.category.APP_CALCULATOR"/>
-              </intent>
-
-              <intent>
-                <action android:name="android.intent.action.MAIN"/>
-                <category android:name="android.intent.category.APP_CALENDAR"/>
-              </intent>
-
-              <intent>
-                <action android:name="android.intent.action.VIEW"/>
-                <data android:mimeType="image/*"/>
-              </intent>
-
-              <intent>
-                <action android:name="android.settings.SETTINGS"/>
-              </intent>
+              <intent><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent>
+              <intent><action android:name="android.media.action.STILL_IMAGE_CAMERA"/></intent>
+              <intent><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.APP_EMAIL"/></intent>
+              <intent><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.APP_CALCULATOR"/></intent>
+              <intent><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.APP_CALENDAR"/></intent>
+              <intent><action android:name="android.intent.action.VIEW"/><data android:mimeType="image/*"/></intent>
+              <intent><action android:name="android.settings.SETTINGS"/></intent>
             </queries>
-
             <application
               android:label="Laurie's Creations"
               android:icon="@drawable/appicon"
               android:roundIcon="@drawable/appicon"
               android:theme="@android:style/Theme.Material.Light.NoActionBar">
-
-              <receiver
-                android:name=".KioskAdminReceiver"
-                android:permission="android.permission.BIND_DEVICE_ADMIN"
-                android:exported="true">
-
-                <meta-data
-                  android:name="android.app.device_admin"
-                  android:resource="@xml/device_admin"/>
-
-                <intent-filter>
-                  <action android:name="android.app.action.DEVICE_ADMIN_ENABLED"/>
-                </intent-filter>
-              </receiver>
-
-              <activity
-                android:name=".MainActivity"
-                android:exported="true">
-
-                <intent-filter>
-                  <action android:name="android.intent.action.MAIN"/>
-                  <category android:name="android.intent.category.LAUNCHER"/>
-                </intent-filter>
-
-                <intent-filter>
-                  <action android:name="android.intent.action.MAIN"/>
-                  <category android:name="android.intent.category.HOME"/>
-                  <category android:name="android.intent.category.DEFAULT"/>
-                </intent-filter>
+              <activity android:name=".MainActivity" android:exported="true">
+                <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+                <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.HOME"/><category android:name="android.intent.category.DEFAULT"/></intent-filter>
               </activity>
             </application>
           </manifest>
           EOF
 
-          cat > app/src/main/res/xml/device_admin.xml <<'EOF'
-          <device-admin xmlns:android="http://schemas.android.com/apk/res/android">
-            <uses-policies/>
-          </device-admin>
-          EOF
-
-          cat > app/src/main/java/com/lauriescreations/home/KioskAdminReceiver.java <<'EOF'
-          package com.lauriescreations.home;
-
-          import android.app.admin.DeviceAdminReceiver;
-
-          public class KioskAdminReceiver extends DeviceAdminReceiver {
-          }
-          EOF
-
-      - name: Create launcher application
+      - name: Create everyday launcher
         run: |
           cat > app/src/main/java/com/lauriescreations/home/MainActivity.java <<'EOF'
           package com.lauriescreations.home;
 
           import android.app.*;
-          import android.app.admin.*;
           import android.content.*;
           import android.content.pm.*;
           import android.graphics.*;
@@ -215,186 +122,84 @@ jobs:
           import android.text.InputType;
           import android.view.*;
           import android.widget.*;
-
           import java.security.*;
           import java.util.*;
-
           import javax.crypto.*;
           import javax.crypto.spec.*;
 
           public class MainActivity extends Activity {
-
             private static final String PREFS = "lauries_exit_pin";
-            private static final String ACTIVE = "managed_kiosk_active";
-
             private static final int PURPLE = Color.rgb(103,45,148);
+            // Normal Android HOME app; the PIN guards only this app's controls.
 
-            private TextView status;
-            private TextView kioskButton;
-
-            int dp(int n) {
-              return Math.round(n * getResources().getDisplayMetrics().density);
-            }
-
+            int dp(int n) { return Math.round(n * getResources().getDisplayMetrics().density); }
             android.content.SharedPreferences prefs() {
               return getSharedPreferences(PREFS, MODE_PRIVATE);
             }
-
-            GradientDrawable background(int color) {
+            GradientDrawable rounded(int color) {
               GradientDrawable d = new GradientDrawable();
               d.setColor(color);
               d.setCornerRadius(dp(20));
               return d;
             }
-
-            Intent category(String category) {
+            Intent category(String c) {
               Intent i = new Intent(Intent.ACTION_MAIN);
-              i.addCategory(category);
+              i.addCategory(c);
               return i;
             }
-
             Intent photos() {
               Intent i = new Intent(Intent.ACTION_VIEW);
-              i.setDataAndType(
-                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                "image/*"
-              );
+              i.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*");
               return i;
             }
 
-            @Override
-            public void onCreate(Bundle state) {
+            @Override public void onCreate(Bundle state) {
               super.onCreate(state);
-
               getWindow().setStatusBarColor(Color.rgb(64,24,93));
-
               ScrollView scroll = new ScrollView(this);
               scroll.setFillViewport(true);
-
               LinearLayout root = new LinearLayout(this);
               root.setOrientation(LinearLayout.VERTICAL);
               root.setGravity(Gravity.CENTER_HORIZONTAL);
               root.setPadding(dp(8),dp(12),dp(8),dp(20));
-
               GradientDrawable wallpaper = new GradientDrawable(
                 GradientDrawable.Orientation.TL_BR,
-                new int[] {
-                  Color.rgb(246,235,251),
-                  Color.rgb(230,214,244),
-                  Color.rgb(249,244,252)
-                }
+                new int[] { Color.rgb(246,235,251), Color.rgb(230,214,244), Color.rgb(249,244,252) }
               );
-
               root.setBackground(wallpaper);
 
               ImageView banner = new ImageView(this);
               banner.setImageResource(R.drawable.topbanner);
               banner.setScaleType(ImageView.ScaleType.FIT_CENTER);
               banner.setAdjustViewBounds(true);
-
-              LinearLayout.LayoutParams bp =
-                new LinearLayout.LayoutParams(-1,dp(185));
-
+              LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(-1, dp(185));
               bp.bottomMargin = dp(10);
-              root.addView(banner,bp);
+              root.addView(banner, bp);
 
               GridLayout grid = new GridLayout(this);
               grid.setColumnCount(4);
-
-              addApp(grid,"Square POS","com.squareup");
-              addApp(grid,"Square Dashboard","com.squareup.dashboard");
-              addApp(grid,"Square Team","com.squareup.payroll.team");
-              addApp(grid,"Meta Business","com.facebook.pages.app");
-
-              addApp(grid,"Cash App","com.squareup.cash");
-
-              addIntent(
-                grid,
-                "Camera",
-                new Intent("android.media.action.STILL_IMAGE_CAMERA")
-              );
-
-              addIntent(grid,"Photos",photos());
-
-              addIntent(
-                grid,
-                "Email",
-                category(Intent.CATEGORY_APP_EMAIL)
-              );
-
+              addApp(grid, "Square POS", "com.squareup");
+              addApp(grid, "Square Dashboard", "com.squareup.dashboard");
+              addApp(grid, "Square Team", "com.squareup.payroll.team");
+              addApp(grid, "Meta Business", "com.facebook.pages.app");
+              addApp(grid, "Cash App", "com.squareup.cash");
+              addIntent(grid, "Camera", new Intent("android.media.action.STILL_IMAGE_CAMERA"));
+              addIntent(grid, "Photos", photos());
+              addIntent(grid, "Email", category(Intent.CATEGORY_APP_EMAIL));
               addSettings(grid);
-
-              addIntent(
-                grid,
-                "Calculator",
-                category("android.intent.category.APP_CALCULATOR")
-              );
-
-              addIntent(
-                grid,
-                "Calendar",
-                category(Intent.CATEGORY_APP_CALENDAR)
-              );
-
-              root.addView(grid,new LinearLayout.LayoutParams(-1,-2));
-
-              status = new TextView(this);
-              status.setGravity(Gravity.CENTER);
-              status.setTextSize(12);
-              status.setTextColor(Color.rgb(78,52,100));
-              status.setPadding(dp(10),dp(20),dp(10),dp(8));
-
-              root.addView(status);
-
-              kioskButton = new TextView(this);
-              kioskButton.setGravity(Gravity.CENTER);
-              kioskButton.setTextSize(15);
-              kioskButton.setTypeface(null,Typeface.BOLD);
-              kioskButton.setTextColor(Color.WHITE);
-              kioskButton.setBackground(background(PURPLE));
-              kioskButton.setPadding(dp(10),dp(16),dp(10),dp(16));
-
-              LinearLayout.LayoutParams kp =
-                new LinearLayout.LayoutParams(-1,-2);
-
-              kp.setMargins(dp(8),dp(4),dp(8),dp(8));
-              root.addView(kioskButton,kp);
-
-              kioskButton.setOnClickListener(v -> {
-                if (!isOwner()) {
-                  new AlertDialog.Builder(this)
-                    .setTitle("Managed kiosk setup required")
-                    .setMessage(
-                      "Strong kiosk mode requires Android device-owner " +
-                      "provisioning on a dedicated Android phone. " +
-                      "Installing the APK alone does not enable it."
-                    )
-                    .setPositiveButton("OK",null)
-                    .show();
-                  return;
-                }
-
-                askPin("Kiosk administration",() -> {
-                  if (managed()) {
-                    disableKiosk();
-                  } else {
-                    confirmKiosk();
-                  }
-                });
-              });
+              addIntent(grid, "Calculator", category("android.intent.category.APP_CALCULATOR"));
+              addIntent(grid, "Calendar", category(Intent.CATEGORY_APP_CALENDAR));
+              addTile(grid, "All Apps", null, this::showAllApps);
+              root.addView(grid, new LinearLayout.LayoutParams(-1,-2));
 
               TextView exit = new TextView(this);
-              exit.setText("🔒 Exit launcher");
+              exit.setText("\uD83D\uDD12  Exit launcher");
               exit.setGravity(Gravity.CENTER);
               exit.setTextColor(PURPLE);
-              exit.setTypeface(null,Typeface.BOLD);
+              exit.setTypeface(null, Typeface.BOLD);
               exit.setTextSize(16);
               exit.setPadding(dp(12),dp(18),dp(12),dp(12));
-
-              exit.setOnClickListener(v ->
-                askPin("Exit launcher",this::exitLauncher)
-              );
-
+              exit.setOnClickListener(v -> askPin("Exit launcher", this::exitLauncher));
               root.addView(exit);
 
               TextView change = new TextView(this);
@@ -403,174 +208,118 @@ jobs:
               change.setTextColor(Color.rgb(105,81,125));
               change.setGravity(Gravity.CENTER);
               change.setPadding(dp(10),dp(10),dp(10),dp(10));
-
-              change.setOnClickListener(v ->
-                askPin("Enter current PIN",this::createPin)
-              );
-
+              change.setOnClickListener(v -> askPin("Enter current PIN",this::createPin));
               root.addView(change);
 
               scroll.addView(root);
               setContentView(scroll);
-
-              updateStatus();
-
-              if (!prefs().contains("pin_hash")) {
-                root.post(this::createPin);
-              }
+              if (!prefs().contains("pin_hash")) root.post(this::createPin);
             }
 
-            void open(Intent intent) {
-              try {
-                startActivity(intent);
-              } catch (Exception e) {
-                Toast.makeText(
-                  this,
-                  "App not available",
-                  Toast.LENGTH_SHORT
-                ).show();
-              }
+            void open(Intent i) {
+              try { startActivity(i); }
+              catch(Exception e) { Toast.makeText(this,"App not available",Toast.LENGTH_SHORT).show(); }
             }
-
             void addApp(GridLayout grid,String name,String pkg) {
               Drawable icon = null;
-
-              try {
-                icon = getPackageManager().getApplicationIcon(pkg);
-              } catch (Exception ignored) {}
-
+              try { icon = getPackageManager().getApplicationIcon(pkg); }
+              catch(Exception ignored) {}
               addTile(grid,name,icon,() -> {
                 Intent i = getPackageManager().getLaunchIntentForPackage(pkg);
-
-                if (i != null) {
-                  open(i);
-                } else if (managed()) {
-                  Toast.makeText(
-                    this,
-                    "Install this app before enabling kiosk mode",
-                    Toast.LENGTH_LONG
-                  ).show();
-                } else {
-                  open(new Intent(
-                    Intent.ACTION_VIEW,
-                    Uri.parse(
-                      "https://play.google.com/store/apps/details?id=" + pkg
-                    )
-                  ));
-                }
+                if (i != null) open(i);
+                else open(new Intent(Intent.ACTION_VIEW,
+                  Uri.parse("https://play.google.com/store/apps/details?id="+pkg)));
               });
             }
-
             void addIntent(GridLayout grid,String name,Intent intent) {
               Drawable icon = null;
-
               try {
-                ResolveInfo info = getPackageManager().resolveActivity(
-                  intent,
-                  PackageManager.MATCH_DEFAULT_ONLY
-                );
-                if (info != null) {
-                  icon = info.loadIcon(getPackageManager());
-                }
-              } catch (Exception ignored) {}
-
-              addTile(grid,name,icon,() ->
-                open(resolveShortcut(new Intent(intent)))
-              );
+                ResolveInfo r = getPackageManager().resolveActivity(intent,PackageManager.MATCH_DEFAULT_ONLY);
+                if(r != null) icon = r.loadIcon(getPackageManager());
+              } catch(Exception ignored) {}
+              addTile(grid,name,icon,() -> open(new Intent(intent)));
             }
-
             void addSettings(GridLayout grid) {
               Intent settings = new Intent(Settings.ACTION_SETTINGS);
               Drawable icon = null;
-
               try {
-                ResolveInfo info = getPackageManager().resolveActivity(
-                  settings,
-                  PackageManager.MATCH_DEFAULT_ONLY
-                );
+                ResolveInfo r = getPackageManager().resolveActivity(settings,PackageManager.MATCH_DEFAULT_ONLY);
+                if(r != null) icon = r.loadIcon(getPackageManager());
+              } catch(Exception ignored) {}
+              addTile(grid,"Settings",icon,() -> askPin("Open Settings",() -> open(settings)));
+            }
 
-                if (info != null) {
-                  icon = info.loadIcon(getPackageManager());
-                }
-              } catch (Exception ignored) {}
-
-              addTile(grid,"Settings",icon,() ->
-                askPin("Open Settings",() -> {
-                  if (managed()) {
-                    disableKiosk();
-                  }
-                  open(settings);
+            void showAllApps() {
+              Intent finder = category(Intent.CATEGORY_LAUNCHER);
+              java.util.List<ResolveInfo> apps = getPackageManager().queryIntentActivities(finder,0);
+              Collections.sort(apps, new ResolveInfo.DisplayNameComparator(getPackageManager()));
+              java.util.ArrayList<ResolveInfo> visible = new java.util.ArrayList<>();
+              java.util.ArrayList<String> names = new java.util.ArrayList<>();
+              for (ResolveInfo r : apps) {
+                if (r.activityInfo == null || getPackageName().equals(r.activityInfo.packageName)) continue;
+                visible.add(r);
+                names.add(r.loadLabel(getPackageManager()).toString());
+              }
+              if (visible.isEmpty()) {
+                Toast.makeText(this,"No other apps found",Toast.LENGTH_SHORT).show();
+                return;
+              }
+              new AlertDialog.Builder(this)
+                .setTitle("All Apps")
+                .setItems(names.toArray(new String[0]), (d, which) -> {
+                  ResolveInfo selected = visible.get(which);
+                  Intent launch = new Intent(Intent.ACTION_MAIN);
+                  launch.setClassName(selected.activityInfo.packageName, selected.activityInfo.name);
+                  launch.addCategory(Intent.CATEGORY_LAUNCHER);
+                  open(launch);
                 })
-              );
+                .setNegativeButton("Close",null)
+                .show();
             }
 
             String glyph(String name) {
-              if (name.equals("Square POS")) return "S";
-              if (name.equals("Square Dashboard")) return "D";
-              if (name.equals("Square Team")) return "T";
-              if (name.equals("Meta Business")) return "M";
-              if (name.equals("Cash App")) return "$";
-              if (name.equals("Camera")) return "●";
-              if (name.equals("Photos")) return "✿";
-              if (name.equals("Email")) return "✉";
-              if (name.equals("Settings")) return "⚙";
-              if (name.equals("Calendar")) return "31";
+              if(name.equals("Square POS")) return "S";
+              if(name.equals("Square Dashboard")) return "D";
+              if(name.equals("Square Team")) return "T";
+              if(name.equals("Meta Business")) return "M";
+              if(name.equals("Cash App")) return "$";
+              if(name.equals("Camera")) return "\u25CF";
+              if(name.equals("Photos")) return "\u273F";
+              if(name.equals("Email")) return "\u2709";
+              if(name.equals("Settings")) return "\u2699";
+              if(name.equals("Calendar")) return "31";
+              if(name.equals("All Apps")) return "\u22EE";
               return "=";
             }
-
             int iconColor(String name) {
-              if (name.startsWith("Square")) return Color.rgb(32,34,42);
-              if (name.equals("Meta Business")) return Color.rgb(24,119,242);
-              if (name.equals("Cash App")) return Color.rgb(0,174,74);
-              if (name.equals("Camera")) return Color.rgb(103,45,148);
-              if (name.equals("Photos")) return Color.rgb(228,72,130);
-              if (name.equals("Email")) return Color.rgb(56,116,211);
-              if (name.equals("Calendar")) return Color.rgb(28,115,216);
+              if(name.startsWith("Square")) return Color.rgb(32,34,42);
+              if(name.equals("Meta Business")) return Color.rgb(24,119,242);
+              if(name.equals("Cash App")) return Color.rgb(0,174,74);
+              if(name.equals("Camera")) return Color.rgb(103,45,148);
+              if(name.equals("Photos")) return Color.rgb(228,72,130);
+              if(name.equals("Email")) return Color.rgb(56,116,211);
+              if(name.equals("Calendar")) return Color.rgb(28,115,216);
               return Color.rgb(104,61,150);
             }
-
-            void addTile(
-              GridLayout grid,
-              String name,
-              Drawable icon,
-              Runnable action
-            ) {
+            void addTile(GridLayout grid,String name,Drawable icon,Runnable action) {
               LinearLayout tile = new LinearLayout(this);
               tile.setOrientation(LinearLayout.VERTICAL);
-              tile.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+              tile.setGravity(Gravity.TOP|Gravity.CENTER_HORIZONTAL);
               tile.setPadding(dp(2),dp(10),dp(2),dp(5));
               tile.setClickable(true);
               tile.setFocusable(true);
-              tile.setContentDescription("Open " + name);
-
-              android.util.TypedValue ripple =
-                new android.util.TypedValue();
-
-              if (getTheme().resolveAttribute(
-                android.R.attr.selectableItemBackground,
-                ripple,
-                true
-              )) {
+              tile.setContentDescription("Open "+name);
+              android.util.TypedValue ripple = new android.util.TypedValue();
+              if(getTheme().resolveAttribute(android.R.attr.selectableItemBackground,ripple,true)) {
                 tile.setBackgroundResource(ripple.resourceId);
               }
-
               FrameLayout frame = new FrameLayout(this);
-              tile.addView(
-                frame,
-                new LinearLayout.LayoutParams(dp(60),dp(60))
-              );
-
-              if (icon != null) {
+              tile.addView(frame,new LinearLayout.LayoutParams(dp(60),dp(60)));
+              if(icon != null) {
                 ImageView image = new ImageView(this);
                 image.setImageDrawable(icon);
                 image.setScaleType(ImageView.ScaleType.FIT_CENTER);
-
-                frame.addView(
-                  image,
-                  new FrameLayout.LayoutParams(
-                    dp(56),dp(56),Gravity.CENTER
-                  )
-                );
+                frame.addView(image,new FrameLayout.LayoutParams(dp(56),dp(56),Gravity.CENTER));
               } else {
                 TextView fallback = new TextView(this);
                 fallback.setText(glyph(name));
@@ -578,619 +327,149 @@ jobs:
                 fallback.setTypeface(null,Typeface.BOLD);
                 fallback.setTextColor(Color.WHITE);
                 fallback.setGravity(Gravity.CENTER);
-
                 GradientDrawable bg = new GradientDrawable();
                 bg.setColor(iconColor(name));
                 bg.setCornerRadius(dp(18));
                 fallback.setBackground(bg);
-
-                frame.addView(
-                  fallback,
-                  new FrameLayout.LayoutParams(
-                    dp(54),dp(54),Gravity.CENTER
-                  )
-                );
+                frame.addView(fallback,new FrameLayout.LayoutParams(dp(54),dp(54),Gravity.CENTER));
               }
-
               TextView label = new TextView(this);
               label.setText(name);
               label.setTextColor(Color.rgb(57,35,77));
               label.setTextSize(11);
-              label.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
+              label.setGravity(Gravity.TOP|Gravity.CENTER_HORIZONTAL);
               label.setMaxLines(2);
               label.setEllipsize(TextUtils.TruncateAt.END);
               label.setPadding(0,dp(5),0,0);
-
-              tile.addView(
-                label,
-                new LinearLayout.LayoutParams(-1,dp(40))
-              );
-
+              tile.addView(label,new LinearLayout.LayoutParams(-1,dp(40)));
               tile.setOnClickListener(v -> action.run());
-
-              GridLayout.LayoutParams params =
-                new GridLayout.LayoutParams();
-
-              params.width = 0;
-              params.height = dp(116);
-              params.columnSpec = GridLayout.spec(GridLayout.UNDEFINED,1f);
-              params.setMargins(dp(1),dp(2),dp(1),dp(2));
-
-              grid.addView(tile,params);
+              GridLayout.LayoutParams p = new GridLayout.LayoutParams();
+              p.width=0;
+              p.height=dp(116);
+              p.columnSpec=GridLayout.spec(GridLayout.UNDEFINED,1f);
+              p.setMargins(dp(1),dp(2),dp(1),dp(2));
+              grid.addView(tile,p);
             }
 
             EditText pinInput() {
               EditText input = new EditText(this);
-
-              input.setInputType(
-                InputType.TYPE_CLASS_NUMBER |
-                InputType.TYPE_NUMBER_VARIATION_PASSWORD
-              );
-
-              input.setFilters(
-                new InputFilter[] {
-                  new InputFilter.LengthFilter(6)
-                }
-              );
-
+              input.setInputType(InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_VARIATION_PASSWORD);
+              input.setFilters(new InputFilter[]{new InputFilter.LengthFilter(6)});
               input.setHint("4 to 6 digits");
               input.setSingleLine(true);
-
               return input;
             }
-
             String hashPin(String pin,byte[] salt) throws Exception {
-              PBEKeySpec spec = new PBEKeySpec(
-                pin.toCharArray(),
-                salt,
-                100000,
-                256
-              );
-
+              PBEKeySpec spec = new PBEKeySpec(pin.toCharArray(),salt,100000,256);
               try {
-                byte[] bytes = SecretKeyFactory
-                  .getInstance("PBKDF2WithHmacSHA1")
-                  .generateSecret(spec)
-                  .getEncoded();
-
-                return android.util.Base64.encodeToString(
-                  bytes,
-                  android.util.Base64.NO_WRAP
-                );
-              } finally {
-                spec.clearPassword();
-              }
+                byte[] bytes = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1")
+                  .generateSecret(spec).getEncoded();
+                return android.util.Base64.encodeToString(bytes,android.util.Base64.NO_WRAP);
+              } finally { spec.clearPassword(); }
             }
-
             boolean correctPin(String entered) {
               try {
-                byte[] salt = android.util.Base64.decode(
-                  prefs().getString("pin_salt",""),
-                  android.util.Base64.DEFAULT
-                );
-
-                byte[] expected = android.util.Base64.decode(
-                  prefs().getString("pin_hash",""),
-                  android.util.Base64.DEFAULT
-                );
-
-                byte[] result = android.util.Base64.decode(
-                  hashPin(entered,salt),
-                  android.util.Base64.DEFAULT
-                );
-
-                return MessageDigest.isEqual(expected,result);
-
-              } catch (Exception e) {
-                return false;
-              }
+                byte[] salt = android.util.Base64.decode(prefs().getString("pin_salt",""),android.util.Base64.DEFAULT);
+                byte[] expected = android.util.Base64.decode(prefs().getString("pin_hash",""),android.util.Base64.DEFAULT);
+                byte[] actual = android.util.Base64.decode(hashPin(entered,salt),android.util.Base64.DEFAULT);
+                return MessageDigest.isEqual(expected,actual);
+              } catch(Exception e) { return false; }
             }
-
             void createPin() {
               EditText input = pinInput();
-
               AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle("Create your exit PIN")
                 .setMessage("Choose a PIN containing 4 to 6 digits.")
-                .setView(input)
-                .setPositiveButton("Continue",null)
-                .setCancelable(false)
-                .create();
-
-              dialog.setOnShowListener(v ->
-                dialog.getButton(AlertDialog.BUTTON_POSITIVE)
-                  .setOnClickListener(w -> {
-                    String pin = input.getText().toString();
-
-                    if (!pin.matches("[0-9]{4,6}")) {
-                      input.setError("Use 4 to 6 digits");
-                      return;
-                    }
-
-                    dialog.dismiss();
-                    confirmPin(pin);
-                  })
-              );
-
+                .setView(input).setPositiveButton("Continue",null)
+                .setCancelable(false).create();
+              dialog.setOnShowListener(v -> dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                .setOnClickListener(w -> {
+                  String pin = input.getText().toString();
+                  if(!pin.matches("[0-9]{4,6}")) { input.setError("Use 4 to 6 digits"); return; }
+                  dialog.dismiss();
+                  confirmPin(pin);
+                }));
               dialog.show();
             }
-
             void confirmPin(String pin) {
               EditText input = pinInput();
-
               AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle("Confirm PIN")
                 .setMessage("Enter your new PIN a second time.")
-                .setView(input)
-                .setPositiveButton("Save PIN",null)
-                .setCancelable(false)
-                .create();
-
-              dialog.setOnShowListener(v ->
-                dialog.getButton(AlertDialog.BUTTON_POSITIVE)
-                  .setOnClickListener(w -> {
-                    if (!pin.equals(input.getText().toString())) {
-                      input.setError("PINs do not match");
-                      return;
-                    }
-
-                    try {
-                      byte[] salt = new byte[16];
-                      new SecureRandom().nextBytes(salt);
-
-                      prefs().edit()
-                        .putString(
-                          "pin_salt",
-                          android.util.Base64.encodeToString(
-                            salt,
-                            android.util.Base64.NO_WRAP
-                          )
-                        )
-                        .putString("pin_hash",hashPin(pin,salt))
-                        .putInt("failed",0)
-                        .putLong("locked_until",0)
-                        .apply();
-
-                      dialog.dismiss();
-
-                      Toast.makeText(
-                        this,
-                        "PIN saved",
-                        Toast.LENGTH_SHORT
-                      ).show();
-
-                    } catch (Exception e) {
-                      input.setError("Could not save PIN");
-                    }
-                  })
-              );
-
+                .setView(input).setPositiveButton("Save PIN",null)
+                .setCancelable(false).create();
+              dialog.setOnShowListener(v -> dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                .setOnClickListener(w -> {
+                  if(!pin.equals(input.getText().toString())) {input.setError("PINs do not match");return;}
+                  try {
+                    byte[] salt = new byte[16];
+                    new SecureRandom().nextBytes(salt);
+                    prefs().edit().putString("pin_salt",android.util.Base64.encodeToString(salt,android.util.Base64.NO_WRAP))
+                      .putString("pin_hash",hashPin(pin,salt)).putInt("failed",0).putLong("locked_until",0).apply();
+                    dialog.dismiss();
+                    Toast.makeText(this,"PIN saved",Toast.LENGTH_SHORT).show();
+                  } catch(Exception e) {input.setError("Could not save PIN");}
+                }));
               dialog.show();
             }
-
             void askPin(String title,Runnable success) {
-              if (!prefs().contains("pin_hash")) {
-                createPin();
-                return;
-              }
-
-              long wait = prefs().getLong("locked_until",0)
-                - System.currentTimeMillis();
-
-              if (wait > 0) {
-                Toast.makeText(
-                  this,
-                  "Wait " + ((wait + 999)/1000) + " seconds",
-                  Toast.LENGTH_LONG
-                ).show();
-                return;
-              }
-
-              EditText input = pinInput();
-
-              AlertDialog dialog = new AlertDialog.Builder(this)
-                .setTitle(title)
-                .setMessage("Enter your Laurie’s Creations PIN.")
-                .setView(input)
-                .setNegativeButton("Cancel",null)
-                .setPositiveButton("Unlock",null)
-                .create();
-
-              dialog.setOnShowListener(v ->
-                dialog.getButton(AlertDialog.BUTTON_POSITIVE)
-                  .setOnClickListener(w -> {
-                    if (correctPin(input.getText().toString())) {
-                      prefs().edit()
-                        .putInt("failed",0)
-                        .putLong("locked_until",0)
-                        .apply();
-
+              if(!prefs().contains("pin_hash")) {createPin();return;}
+              long wait=prefs().getLong("locked_until",0)-System.currentTimeMillis();
+              if(wait>0) {Toast.makeText(this,"Wait "+((wait+999)/1000)+" seconds",Toast.LENGTH_LONG).show();return;}
+              EditText input=pinInput();
+              AlertDialog dialog=new AlertDialog.Builder(this).setTitle(title)
+                .setMessage("Enter your Laurie's Creations PIN.")
+                .setView(input).setNegativeButton("Cancel",null)
+                .setPositiveButton("Unlock",null).create();
+              dialog.setOnShowListener(v -> dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                .setOnClickListener(w -> {
+                  if(correctPin(input.getText().toString())) {
+                    prefs().edit().putInt("failed",0).putLong("locked_until",0).apply();
+                    dialog.dismiss();success.run();
+                  } else {
+                    int count=prefs().getInt("failed",0)+1;
+                    if(count>=5) {
+                      prefs().edit().putInt("failed",0)
+                        .putLong("locked_until",System.currentTimeMillis()+30000).apply();
                       dialog.dismiss();
-                      success.run();
-
+                      Toast.makeText(this,"Try again in 30 seconds",Toast.LENGTH_LONG).show();
                     } else {
-                      int count = prefs().getInt("failed",0) + 1;
-
-                      if (count >= 5) {
-                        prefs().edit()
-                          .putInt("failed",0)
-                          .putLong(
-                            "locked_until",
-                            System.currentTimeMillis() + 30000
-                          )
-                          .apply();
-
-                        dialog.dismiss();
-
-                        Toast.makeText(
-                          this,
-                          "Try again in 30 seconds",
-                          Toast.LENGTH_LONG
-                        ).show();
-
-                      } else {
-                        prefs().edit().putInt("failed",count).apply();
-                        input.setText("");
-                        input.setError("Incorrect PIN");
-                      }
-                    }
-                  })
-              );
-
-              dialog.show();
-            }
-          EOF
-
-      - name: Add managed kiosk controls
-        run: |
-          cat >> app/src/main/java/com/lauriescreations/home/MainActivity.java <<'EOF'
-
-            DevicePolicyManager policy() {
-              return (DevicePolicyManager)
-                getSystemService(Context.DEVICE_POLICY_SERVICE);
-            }
-
-            ComponentName admin() {
-              return new ComponentName(this,KioskAdminReceiver.class);
-            }
-
-            boolean isOwner() {
-              return policy() != null &&
-                policy().isDeviceOwnerApp(getPackageName());
-            }
-
-            boolean managed() {
-              return isOwner() && prefs().getBoolean(ACTIVE,false);
-            }
-
-            boolean locked() {
-              ActivityManager manager = (ActivityManager)
-                getSystemService(Context.ACTIVITY_SERVICE);
-
-              return manager != null &&
-                manager.getLockTaskModeState() ==
-                ActivityManager.LOCK_TASK_MODE_LOCKED;
-            }
-
-            void updateStatus() {
-              if (status == null || kioskButton == null) return;
-
-              if (!isOwner()) {
-                status.setText("STANDARD LAUNCHER MODE");
-                kioskButton.setText("Managed kiosk setup information");
-              } else if (managed()) {
-                status.setText("MANAGED KIOSK ACTIVE");
-                kioskButton.setText("Disable kiosk (PIN)");
-              } else {
-                status.setText("DEVICE OWNER READY");
-                kioskButton.setText("Enable kiosk (PIN)");
-              }
-            }
-
-            @Override
-            protected void onResume() {
-              super.onResume();
-              updateStatus();
-
-              if (managed()) {
-                getWindow().getDecorView().post(() -> {
-                  if (!isFinishing() && managed() && !locked()) {
-                    try {
-                      if (policy().isLockTaskPermitted(getPackageName())) {
-                        startLockTask();
-                      }
-                    } catch (Exception e) {
-                      Toast.makeText(
-                        this,
-                        "Could not start kiosk",
-                        Toast.LENGTH_LONG
-                      ).show();
+                      prefs().edit().putInt("failed",count).apply();
+                      input.setText("");input.setError("Incorrect PIN");
                     }
                   }
-                });
-              }
+                }));
+              dialog.show();
             }
-
-            void confirmKiosk() {
-              if (Build.VERSION.SDK_INT < 28) {
-                Toast.makeText(
-                  this,
-                  "Managed multi-app kiosk requires Android 9 or newer",
-                  Toast.LENGTH_LONG
-                ).show();
-                return;
-              }
-
+            void exitLauncher() {
               new AlertDialog.Builder(this)
-                .setTitle("Enable managed kiosk?")
-                .setMessage(
-                  "Install and sign in to all business apps first. " +
-                  "Some payment or sign-in screens may need additional " +
-                  "approved apps. Test on a spare Android device."
-                )
-                .setNegativeButton("Cancel",null)
-                .setPositiveButton("Enable",(d,w) -> enableKiosk())
+                .setTitle("Leave Laurie's Creations?")
+                .setMessage("After entering your PIN, you can choose a different Android Home app. Your personal apps are not restricted.")
+                .setNegativeButton("Stay",null)
+                .setPositiveButton("Home settings",(d,w)->open(new Intent(Settings.ACTION_HOME_SETTINGS)))
                 .show();
             }
-
-            void addHandlers(Set<String> allowed,Intent intent) {
-              try {
-                java.util.List<ResolveInfo> choices =
-                  getPackageManager().queryIntentActivities(
-                    intent,
-                    PackageManager.MATCH_DEFAULT_ONLY
-                  );
-
-                for (ResolveInfo r : choices) {
-                  if (r.activityInfo == null) continue;
-
-                  String pkg = r.activityInfo.packageName;
-
-                  if (!pkg.equals("android") &&
-                      !pkg.equals("com.android.settings")) {
-                    allowed.add(pkg);
-                  }
-                }
-              } catch (Exception ignored) {}
-            }
-
-            String[] approvedPackages() {
-              Set<String> packages = new LinkedHashSet<>();
-
-              packages.add(getPackageName());
-              packages.add("com.squareup");
-              packages.add("com.squareup.dashboard");
-              packages.add("com.squareup.payroll.team");
-              packages.add("com.facebook.pages.app");
-              packages.add("com.squareup.cash");
-
-              addHandlers(
-                packages,
-                new Intent("android.media.action.STILL_IMAGE_CAMERA")
-              );
-
-              addHandlers(packages,photos());
-
-              addHandlers(
-                packages,
-                category(Intent.CATEGORY_APP_EMAIL)
-              );
-
-              addHandlers(
-                packages,
-                category("android.intent.category.APP_CALCULATOR")
-              );
-
-              addHandlers(
-                packages,
-                category(Intent.CATEGORY_APP_CALENDAR)
-              );
-
-              return packages.toArray(new String[0]);
-            }
-
-            void enableKiosk() {
-              if (!isOwner() || Build.VERSION.SDK_INT < 28) {
-                Toast.makeText(
-                  this,
-                  "Device-owner setup is required",
-                  Toast.LENGTH_LONG
-                ).show();
-                return;
-              }
-
-              try {
-                policy().setLockTaskPackages(
-                  admin(),
-                  approvedPackages()
-                );
-
-                IntentFilter home = new IntentFilter(
-                  Intent.ACTION_MAIN
-                );
-
-                home.addCategory(Intent.CATEGORY_HOME);
-                home.addCategory(Intent.CATEGORY_DEFAULT);
-
-                policy().addPersistentPreferredActivity(
-                  admin(),
-                  home,
-                  new ComponentName(this,MainActivity.class)
-                );
-
-                policy().setLockTaskFeatures(
-                  admin(),
-                  DevicePolicyManager.LOCK_TASK_FEATURE_HOME |
-                  DevicePolicyManager.LOCK_TASK_FEATURE_SYSTEM_INFO |
-                  DevicePolicyManager.LOCK_TASK_FEATURE_GLOBAL_ACTIONS
-                );
-
-                if (!policy().isLockTaskPermitted(getPackageName())) {
-                  throw new SecurityException("Not approved");
-                }
-
-                prefs().edit()
-                  .putBoolean(ACTIVE,true)
-                  .commit();
-
-                startLockTask();
-                updateStatus();
-
-              } catch (Exception e) {
-                prefs().edit()
-                  .putBoolean(ACTIVE,false)
-                  .commit();
-
-                try {
-                  policy().setLockTaskPackages(
-                    admin(),
-                    new String[0]
-                  );
-                } catch (Exception ignored) {}
-
-                try {
-                  policy().clearPackagePersistentPreferredActivities(
-                    admin(),
-                    getPackageName()
-                  );
-                } catch (Exception ignored) {}
-
-                updateStatus();
-
-                Toast.makeText(
-                  this,
-                  "Kiosk could not start: " + e.getMessage(),
-                  Toast.LENGTH_LONG
-                ).show();
-              }
-            }
-
-            void disableKiosk() {
-              prefs().edit()
-                .putBoolean(ACTIVE,false)
-                .commit();
-
-              try {
-                if (locked()) stopLockTask();
-              } catch (Exception ignored) {}
-
-              if (isOwner()) {
-                try {
-                  policy().setLockTaskPackages(
-                    admin(),
-                    new String[0]
-                  );
-                } catch (Exception ignored) {}
-
-                try {
-                  policy().clearPackagePersistentPreferredActivities(
-                    admin(),
-                    getPackageName()
-                  );
-                } catch (Exception ignored) {}
-              }
-
-              updateStatus();
-            }
-
-            Intent resolveShortcut(Intent intent) {
-              if (!managed()) return intent;
-
-              try {
-                java.util.List<ResolveInfo> choices =
-                  getPackageManager().queryIntentActivities(
-                    intent,
-                    PackageManager.MATCH_DEFAULT_ONLY
-                  );
-
-                for (ResolveInfo item : choices) {
-                  if (item.activityInfo == null) continue;
-
-                  String pkg = item.activityInfo.packageName;
-
-                  if (policy().isLockTaskPermitted(pkg)) {
-                    intent.setClassName(
-                      pkg,
-                      item.activityInfo.name
-                    );
-                    return intent;
-                  }
-                }
-              } catch (Exception ignored) {}
-
-              return intent;
-            }
-
-            void exitLauncher() {
-              if (managed()) disableKiosk();
-
-              Toast.makeText(
-                this,
-                "You can now select another default Home app",
-                Toast.LENGTH_LONG
-              ).show();
-
-              open(new Intent(Settings.ACTION_HOME_SETTINGS));
-            }
-
-            @Override
-            public void onBackPressed() {
-              askPin("Exit launcher",this::exitLauncher);
-            }
+            @Override public void onBackPressed() {askPin("Exit launcher",this::exitLauncher);}
           }
           EOF
 
       - name: Restore Laurie's Creations artwork
         run: |
           curl --fail --location --silent --show-error --retry 3 \
-            -o /tmp/old-lauries-workflow.yml \
+            -o /tmp/lauries-previous.yml \
             https://raw.githubusercontent.com/bradyicecream/Laurie-2/ffb4624b959ba08d284ad948dcd608dcdf6a675a/.github/workflows/build-apk.yml
-
           python3 - <<'PY'
-          import base64
-          import pathlib
-          import re
-
-          source = pathlib.Path(
-            '/tmp/old-lauries-workflow.yml'
-          ).read_text()
-
-          for marker,filename in [
-            ('ICON','appicon.webp'),
-            ('BANNER','topbanner.webp')
-          ]:
-            pattern = (
-              r"cat <<'" + marker +
-              r"'[^\n]*\n(.*?)^\s*" + marker + r"\s*$"
-            )
-
-            match = re.search(pattern,source,re.S | re.M)
-
-            if not match:
-              raise RuntimeError(
-                'Missing artwork: ' + marker
-              )
-
-            encoded = ''.join(
-              re.findall(
-                r'^\s*([A-Za-z0-9+/=]{20,})\s*$',
-                match.group(1),
-                re.M
-              )
-            )
-
-            raw = base64.b64decode(
-              encoded,
-              validate=True
-            )
-
+          import base64, pathlib, re
+          source = pathlib.Path('/tmp/lauries-previous.yml').read_text()
+          for marker,filename in [('ICON','appicon.webp'),('BANNER','topbanner.webp')]:
+            pattern = r"cat <<'" + marker + r"'[^\n]*\n(.*?)^\s*" + marker + r"\s*$"
+            match = re.search(pattern,source,re.S|re.M)
+            if not match: raise RuntimeError('Missing artwork: '+marker)
+            encoded = ''.join(re.findall(r'^\s*([A-Za-z0-9+/=]{20,})\s*$',match.group(1),re.M))
+            raw = base64.b64decode(encoded,validate=True)
             if not raw.startswith(b'RIFF') or b'WEBP' not in raw[:16]:
-              raise RuntimeError('Invalid artwork: ' + marker)
-
-            pathlib.Path(
-              'app/src/main/res/drawable/' + filename
-            ).write_bytes(raw)
-
+              raise RuntimeError('Invalid artwork: '+marker)
+            pathlib.Path('app/src/main/res/drawable/'+filename).write_bytes(raw)
             print(filename,len(raw),'bytes')
           PY
 
@@ -1200,22 +479,17 @@ jobs:
           LAURIES_KEYSTORE_PASSWORD: ${{ secrets.LAURIES_KEYSTORE_PASSWORD }}
           LAURIES_KEY_ALIAS: ${{ secrets.LAURIES_KEY_ALIAS }}
           LAURIES_KEY_PASSWORD: ${{ secrets.LAURIES_KEY_PASSWORD }}
-
         run: |
           if [ -n "$LAURIES_KEYSTORE_B64" ]; then
             printf '%s' "$LAURIES_KEYSTORE_B64" | base64 -d > /tmp/lauries-release.jks
-
             export LC_KEYSTORE_PATH=/tmp/lauries-release.jks
             export LC_STORE_PASSWORD="$LAURIES_KEYSTORE_PASSWORD"
             export LC_KEY_ALIAS="$LAURIES_KEY_ALIAS"
             export LC_KEY_PASSWORD="$LAURIES_KEY_PASSWORD"
-
             gradle --no-daemon :app:assembleRelease
-
             cp app/build/outputs/apk/release/app-release.apk LauriesCreations.apk
           else
             gradle --no-daemon :app:assembleDebug
-
             cp app/build/outputs/apk/debug/app-debug.apk LauriesCreations.apk
           fi
 
@@ -1227,5 +501,5 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: lauriescreations-${{ github.run_number }}
-          name: Laurie's Creations Launcher
+          name: Laurie's Creations Everyday Launcher
           files: LauriesCreations.apk
