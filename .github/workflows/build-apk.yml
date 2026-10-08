@@ -33,7 +33,7 @@ jobs:
         with:
           gradle-version: "8.9"
 
-      - name: Create Android project
+      - name: Create Android launcher project
         run: |
           mkdir -p app/src/main/java/com/lauriescreations/businesshome
 
@@ -76,8 +76,8 @@ jobs:
                   applicationId 'com.lauriescreations.businesshome'
                   minSdk 23
                   targetSdk 35
-                  versionCode 1
-                  versionName '1.0'
+                  versionCode 2
+                  versionName '2.0'
               }
 
               compileOptions {
@@ -94,6 +94,24 @@ jobs:
                   <package android:name="com.squareup" />
                   <package android:name="com.facebook.pages.app" />
                   <package android:name="com.squareup.cash" />
+
+                  <intent>
+                      <action android:name="android.media.action.STILL_IMAGE_CAMERA" />
+                  </intent>
+
+                  <intent>
+                      <action android:name="android.intent.action.MAIN" />
+                      <category android:name="android.intent.category.APP_EMAIL" />
+                  </intent>
+
+                  <intent>
+                      <action android:name="android.intent.action.VIEW" />
+                      <data android:mimeType="image/*" />
+                  </intent>
+
+                  <intent>
+                      <action android:name="android.settings.SETTINGS" />
+                  </intent>
               </queries>
 
               <application
@@ -127,7 +145,11 @@ jobs:
           import android.app.Activity;
           import android.content.ActivityNotFoundException;
           import android.content.Intent;
+          import android.content.pm.PackageManager;
+          import android.content.pm.ResolveInfo;
           import android.graphics.Color;
+          import android.graphics.Typeface;
+          import android.graphics.drawable.Drawable;
           import android.graphics.drawable.GradientDrawable;
           import android.net.Uri;
           import android.os.Bundle;
@@ -136,7 +158,9 @@ jobs:
           import android.view.Gravity;
           import android.view.View;
           import android.view.ViewGroup;
-          import android.widget.Button;
+          import android.widget.FrameLayout;
+          import android.widget.GridLayout;
+          import android.widget.ImageView;
           import android.widget.LinearLayout;
           import android.widget.ScrollView;
           import android.widget.TextView;
@@ -144,79 +168,289 @@ jobs:
 
           public class MainActivity extends Activity {
 
+              private final int purple = Color.rgb(92, 45, 132);
+              private final int purpleDark = Color.rgb(61, 26, 93);
+
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
 
+                  getWindow().setStatusBarColor(purpleDark);
+                  getWindow().setNavigationBarColor(purpleDark);
+
                   ScrollView scroll = new ScrollView(this);
+                  scroll.setFillViewport(true);
 
                   LinearLayout root = new LinearLayout(this);
                   root.setOrientation(LinearLayout.VERTICAL);
                   root.setGravity(Gravity.CENTER_HORIZONTAL);
-                  root.setPadding(dp(22), dp(30), dp(22), dp(30));
+                  root.setPadding(dp(20), dp(28), dp(20), dp(28));
                   root.setBackgroundColor(Color.rgb(245, 238, 250));
 
                   TextView title = new TextView(this);
                   title.setText("Laurie's Creations");
-                  title.setTextSize(30);
-                  title.setTextColor(Color.rgb(91, 35, 130));
+                  title.setTextColor(purple);
+                  title.setTextSize(29);
+                  title.setTypeface(Typeface.DEFAULT_BOLD);
                   title.setGravity(Gravity.CENTER);
-                  title.setTypeface(null, android.graphics.Typeface.BOLD);
-                  root.addView(title, fullWidth(dp(8)));
+                  root.addView(title, fullWidth(dp(3)));
 
                   TextView subtitle = new TextView(this);
                   subtitle.setText("Business Home");
-                  subtitle.setTextSize(18);
+                  subtitle.setTextColor(Color.rgb(95, 95, 95));
+                  subtitle.setTextSize(16);
                   subtitle.setGravity(Gravity.CENTER);
                   root.addView(subtitle, fullWidth(dp(24)));
 
-                  addButton(root, "Square POS", v ->
-                          launchPackage("com.squareup"));
+                  GridLayout grid = new GridLayout(this);
+                  grid.setColumnCount(2);
+                  grid.setUseDefaultMargins(false);
 
-                  addButton(root, "Meta Business Suite", v ->
-                          launchPackage("com.facebook.pages.app"));
+                  addPackageTile(grid, "Square POS", "com.squareup");
+                  addPackageTile(grid, "Meta Business", "com.facebook.pages.app");
+                  addPackageTile(grid, "Cash App", "com.squareup.cash");
 
-                  addButton(root, "Cash App", v ->
-                          launchPackage("com.squareup.cash"));
+                  addIntentTile(grid, "Camera", cameraIntent());
+                  addIntentTile(grid, "Photos", photosIntent());
+                  addIntentTile(grid, "Email", emailIntent());
+                  addIntentTile(grid, "Settings", settingsIntent());
 
-                  addButton(root, "Camera", v -> openCamera());
+                  root.addView(grid, fullWidth(dp(22)));
 
-                  addButton(root, "Photos", v -> openPhotos());
+                  TextView home = new TextView(this);
+                  home.setText("Set Business Home as Default");
+                  home.setTextSize(17);
+                  home.setTextColor(Color.WHITE);
+                  home.setGravity(Gravity.CENTER);
+                  home.setTypeface(Typeface.DEFAULT_BOLD);
+                  home.setPadding(dp(18), dp(16), dp(18), dp(16));
 
-                  addButton(root, "Email", v -> openEmail());
+                  GradientDrawable homeBg = new GradientDrawable();
+                  homeBg.setColor(purple);
+                  homeBg.setCornerRadius(dp(18));
+                  home.setBackground(homeBg);
 
-                  addButton(root, "Set as Default Home", v ->
-                          openHomeSettings());
+                  home.setOnClickListener(v -> openHomeSettings());
+
+                  root.addView(home, fullWidth(dp(14)));
+
+                  TextView note = new TextView(this);
+                  note.setText("Tap an app icon to open it.");
+                  note.setTextSize(13);
+                  note.setTextColor(Color.rgb(105, 105, 105));
+                  note.setGravity(Gravity.CENTER);
+                  root.addView(note);
 
                   scroll.addView(root);
                   setContentView(scroll);
               }
 
-              private void addButton(
-                      LinearLayout root,
-                      String text,
-                      View.OnClickListener listener) {
+              private void addPackageTile(
+                      GridLayout grid,
+                      String label,
+                      String packageName) {
 
-                  Button button = new Button(this);
-                  button.setText(text);
-                  button.setTextSize(19);
-                  button.setTextColor(Color.WHITE);
-                  button.setAllCaps(false);
-                  button.setPadding(dp(12), dp(14), dp(12), dp(14));
+                  Drawable icon = null;
 
-                  GradientDrawable background = new GradientDrawable();
-                  background.setColor(Color.rgb(112, 53, 150));
-                  background.setCornerRadius(dp(16));
-                  button.setBackground(background);
+                  try {
+                      icon = getPackageManager()
+                              .getApplicationIcon(packageName);
+                  } catch (Exception ignored) {
+                  }
 
-                  button.setOnClickListener(listener);
+                  Drawable finalIcon = icon;
 
-                  root.addView(button, fullWidth(dp(12)));
+                  View tile = makeTile(
+                          label,
+                          finalIcon,
+                          () -> launchPackage(packageName)
+                  );
+
+                  grid.addView(tile, tileParams());
+              }
+
+              private void addIntentTile(
+                      GridLayout grid,
+                      String label,
+                      Intent intent) {
+
+                  Drawable icon = resolveIcon(intent);
+
+                  View tile = makeTile(
+                          label,
+                          icon,
+                          () -> launchIntent(intent)
+                  );
+
+                  grid.addView(tile, tileParams());
+              }
+
+              private View makeTile(
+                      String label,
+                      Drawable icon,
+                      Runnable onClick) {
+
+                  LinearLayout outer = new LinearLayout(this);
+                  outer.setOrientation(LinearLayout.VERTICAL);
+                  outer.setGravity(Gravity.CENTER);
+                  outer.setPadding(
+                          dp(10),
+                          dp(16),
+                          dp(10),
+                          dp(14)
+                  );
+
+                  outer.setClickable(true);
+                  outer.setFocusable(true);
+                  outer.setElevation(dp(4));
+
+                  GradientDrawable background =
+                          new GradientDrawable();
+
+                  background.setColor(Color.WHITE);
+                  background.setCornerRadius(dp(24));
+                  background.setStroke(
+                          dp(1),
+                          Color.rgb(228, 216, 238)
+                  );
+
+                  outer.setBackground(background);
+
+                  FrameLayout iconShell =
+                          new FrameLayout(this);
+
+                  GradientDrawable iconBackground =
+                          new GradientDrawable();
+
+                  iconBackground.setColor(
+                          Color.rgb(239, 230, 246)
+                  );
+
+                  iconBackground.setShape(
+                          GradientDrawable.OVAL
+                  );
+
+                  iconShell.setBackground(iconBackground);
+
+                  LinearLayout.LayoutParams shellParams =
+                          new LinearLayout.LayoutParams(
+                                  dp(76),
+                                  dp(76)
+                          );
+
+                  shellParams.bottomMargin = dp(10);
+
+                  ImageView image = new ImageView(this);
+                  image.setScaleType(
+                          ImageView.ScaleType.FIT_CENTER
+                  );
+
+                  image.setPadding(
+                          dp(12),
+                          dp(12),
+                          dp(12),
+                          dp(12)
+                  );
+
+                  if (icon != null) {
+                      image.setImageDrawable(icon);
+                  } else {
+                      GradientDrawable fallback =
+                              new GradientDrawable();
+
+                      fallback.setColor(purple);
+                      fallback.setCornerRadius(dp(18));
+
+                      image.setBackground(fallback);
+                  }
+
+                  iconShell.addView(
+                          image,
+                          new FrameLayout.LayoutParams(
+                                  ViewGroup.LayoutParams.MATCH_PARENT,
+                                  ViewGroup.LayoutParams.MATCH_PARENT
+                          )
+                  );
+
+                  outer.addView(
+                          iconShell,
+                          shellParams
+                  );
+
+                  TextView text = new TextView(this);
+                  text.setText(label);
+                  text.setTextColor(
+                          Color.rgb(54, 45, 61)
+                  );
+                  text.setTextSize(15);
+                  text.setTypeface(
+                          Typeface.DEFAULT_BOLD
+                  );
+                  text.setGravity(Gravity.CENTER);
+                  text.setMaxLines(2);
+
+                  outer.addView(text);
+
+                  outer.setOnClickListener(
+                          v -> onClick.run()
+                  );
+
+                  return outer;
+              }
+
+              private GridLayout.LayoutParams tileParams() {
+
+                  GridLayout.LayoutParams params =
+                          new GridLayout.LayoutParams();
+
+                  params.width = 0;
+                  params.height = dp(132);
+
+                  params.columnSpec =
+                          GridLayout.spec(
+                                  GridLayout.UNDEFINED,
+                                  1f
+                          );
+
+                  params.setMargins(
+                          dp(7),
+                          dp(7),
+                          dp(7),
+                          dp(7)
+                  );
+
+                  return params;
+              }
+
+              private Drawable resolveIcon(Intent intent) {
+
+                  try {
+                      PackageManager pm =
+                              getPackageManager();
+
+                      ResolveInfo info =
+                              pm.resolveActivity(
+                                      intent,
+                                      PackageManager.MATCH_DEFAULT_ONLY
+                              );
+
+                      if (info != null) {
+                          return info.loadIcon(pm);
+                      }
+
+                  } catch (Exception ignored) {
+                  }
+
+                  return null;
               }
 
               private void launchPackage(String packageName) {
+
                   Intent launch =
-                          getPackageManager().getLaunchIntentForPackage(packageName);
+                          getPackageManager()
+                                  .getLaunchIntentForPackage(
+                                          packageName
+                                  );
 
                   if (launch != null) {
                       startActivity(launch);
@@ -224,90 +458,128 @@ jobs:
                   }
 
                   try {
-                      startActivity(new Intent(
-                              Intent.ACTION_VIEW,
-                              Uri.parse("market://details?id=" + packageName)
-                      ));
+                      startActivity(
+                              new Intent(
+                                      Intent.ACTION_VIEW,
+                                      Uri.parse(
+                                              "market://details?id="
+                                                      + packageName
+                                      )
+                              )
+                      );
+
                   } catch (ActivityNotFoundException e) {
-                      startActivity(new Intent(
-                              Intent.ACTION_VIEW,
-                              Uri.parse(
-                                      "https://play.google.com/store/apps/details?id="
-                                              + packageName)
-                      ));
+
+                      startActivity(
+                              new Intent(
+                                      Intent.ACTION_VIEW,
+                                      Uri.parse(
+                                              "https://play.google.com/store/apps/details?id="
+                                                      + packageName
+                                      )
+                              )
+                      );
                   }
               }
 
-              private void openCamera() {
-                  try {
-                      startActivity(new Intent(
-                              MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA));
-                  } catch (ActivityNotFoundException e) {
-                      Toast.makeText(
-                              this,
-                              "Camera app not found",
-                              Toast.LENGTH_SHORT
-                      ).show();
-                  }
-              }
-
-              private void openPhotos() {
-                  Intent intent = new Intent(
-                          Intent.ACTION_VIEW,
-                          MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+              private void launchIntent(Intent intent) {
 
                   try {
                       startActivity(intent);
+
                   } catch (ActivityNotFoundException e) {
+
                       Toast.makeText(
                               this,
-                              "Photos app not found",
+                              "No matching app was found.",
                               Toast.LENGTH_SHORT
                       ).show();
                   }
               }
 
-              private void openEmail() {
-                  Intent intent = new Intent(Intent.ACTION_MAIN);
-                  intent.addCategory(Intent.CATEGORY_APP_EMAIL);
+              private Intent cameraIntent() {
+                  return new Intent(
+                          MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA
+                  );
+              }
 
-                  try {
-                      startActivity(intent);
-                  } catch (ActivityNotFoundException e) {
-                      Toast.makeText(
-                              this,
-                              "Email app not found",
-                              Toast.LENGTH_SHORT
-                      ).show();
-                  }
+              private Intent photosIntent() {
+
+                  Intent intent =
+                          new Intent(Intent.ACTION_VIEW);
+
+                  intent.setDataAndType(
+                          MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                          "image/*"
+                  );
+
+                  return intent;
+              }
+
+              private Intent emailIntent() {
+
+                  Intent intent =
+                          new Intent(Intent.ACTION_MAIN);
+
+                  intent.addCategory(
+                          Intent.CATEGORY_APP_EMAIL
+                  );
+
+                  return intent;
+              }
+
+              private Intent settingsIntent() {
+                  return new Intent(
+                          Settings.ACTION_SETTINGS
+                  );
               }
 
               private void openHomeSettings() {
+
                   try {
                       startActivity(
-                              new Intent(Settings.ACTION_HOME_SETTINGS));
+                              new Intent(
+                                      Settings.ACTION_HOME_SETTINGS
+                              )
+                      );
+
                   } catch (ActivityNotFoundException e) {
+
                       startActivity(
-                              new Intent(Settings.ACTION_SETTINGS));
+                              new Intent(
+                                      Settings.ACTION_SETTINGS
+                              )
+                      );
                   }
               }
 
-              private LinearLayout.LayoutParams fullWidth(int margin) {
-                  LinearLayout.LayoutParams p =
+              private LinearLayout.LayoutParams fullWidth(
+                      int bottomMargin) {
+
+                  LinearLayout.LayoutParams params =
                           new LinearLayout.LayoutParams(
                                   ViewGroup.LayoutParams.MATCH_PARENT,
-                                  ViewGroup.LayoutParams.WRAP_CONTENT);
+                                  ViewGroup.LayoutParams.WRAP_CONTENT
+                          );
 
-                  p.bottomMargin = margin;
-                  return p;
+                  params.bottomMargin =
+                          bottomMargin;
+
+                  return params;
               }
 
               private int dp(int value) {
+
                   return Math.round(
                           value *
-                          getResources()
-                                  .getDisplayMetrics()
-                                  .density);
+                                  getResources()
+                                          .getDisplayMetrics()
+                                          .density
+                  );
+              }
+
+              @Override
+              public void onBackPressed() {
               }
           }
           EOF
