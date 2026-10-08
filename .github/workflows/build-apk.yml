@@ -46,8 +46,8 @@ jobs:
               applicationId 'com.lauriescreations.businesshome'
               minSdk 23
               targetSdk 35
-              versionCode 18
-              versionName '3.8-everyday'
+              versionCode 19
+              versionName '3.9-everyday'
             }
             compileOptions {
               sourceCompatibility JavaVersion.VERSION_17
@@ -84,7 +84,7 @@ jobs:
               <package android:name="com.squareup.payroll.team"/>
               <package android:name="com.facebook.pages.app"/>
               <package android:name="com.squareup.cash"/>
-              <intent><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent>
+              <package android:name="com.google.android.apps.docs"/>
               <intent><action android:name="android.media.action.STILL_IMAGE_CAMERA"/></intent>
               <intent><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.APP_EMAIL"/></intent>
               <intent><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.APP_CALCULATOR"/></intent>
@@ -189,7 +189,7 @@ jobs:
               addSettings(grid);
               addIntent(grid, "Calculator", category("android.intent.category.APP_CALCULATOR"));
               addIntent(grid, "Calendar", category(Intent.CATEGORY_APP_CALENDAR));
-              addTile(grid, "All Apps", null, this::showAllApps);
+              addApp(grid, "Google Drive", "com.google.android.apps.docs");
               root.addView(grid, new LinearLayout.LayoutParams(-1,-2));
 
               TextView exit = new TextView(this);
@@ -249,34 +249,6 @@ jobs:
               addTile(grid,"Settings",icon,() -> askPin("Open Settings",() -> open(settings)));
             }
 
-            void showAllApps() {
-              Intent finder = category(Intent.CATEGORY_LAUNCHER);
-              java.util.List<ResolveInfo> apps = getPackageManager().queryIntentActivities(finder,0);
-              Collections.sort(apps, new ResolveInfo.DisplayNameComparator(getPackageManager()));
-              java.util.ArrayList<ResolveInfo> visible = new java.util.ArrayList<>();
-              java.util.ArrayList<String> names = new java.util.ArrayList<>();
-              for (ResolveInfo r : apps) {
-                if (r.activityInfo == null || getPackageName().equals(r.activityInfo.packageName)) continue;
-                visible.add(r);
-                names.add(r.loadLabel(getPackageManager()).toString());
-              }
-              if (visible.isEmpty()) {
-                Toast.makeText(this,"No other apps found",Toast.LENGTH_SHORT).show();
-                return;
-              }
-              new AlertDialog.Builder(this)
-                .setTitle("All Apps")
-                .setItems(names.toArray(new String[0]), (d, which) -> {
-                  ResolveInfo selected = visible.get(which);
-                  Intent launch = new Intent(Intent.ACTION_MAIN);
-                  launch.setClassName(selected.activityInfo.packageName, selected.activityInfo.name);
-                  launch.addCategory(Intent.CATEGORY_LAUNCHER);
-                  open(launch);
-                })
-                .setNegativeButton("Close",null)
-                .show();
-            }
-
             String glyph(String name) {
               if(name.equals("Square POS")) return "S";
               if(name.equals("Square Dashboard")) return "D";
@@ -288,7 +260,7 @@ jobs:
               if(name.equals("Email")) return "\u2709";
               if(name.equals("Settings")) return "\u2699";
               if(name.equals("Calendar")) return "31";
-              if(name.equals("All Apps")) return "\u22EE";
+              if(name.equals("Google Drive")) return "D";
               return "=";
             }
             int iconColor(String name) {
@@ -299,6 +271,7 @@ jobs:
               if(name.equals("Photos")) return Color.rgb(228,72,130);
               if(name.equals("Email")) return Color.rgb(56,116,211);
               if(name.equals("Calendar")) return Color.rgb(28,115,216);
+              if(name.equals("Google Drive")) return Color.rgb(41,139,76);
               return Color.rgb(104,61,150);
             }
             void addTile(GridLayout grid,String name,Drawable icon,Runnable action) {
